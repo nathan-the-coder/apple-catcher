@@ -1,7 +1,7 @@
 package loadr
 
+import "core:fmt"
 import "core:os"
-import "core:log"
 import "core:strings"
 import rl "vendor:raylib"
 
@@ -40,8 +40,8 @@ load_assets :: proc(asset_manager: ^AssetManager, path: string) {
 			if strings.ends_with(info.name, ".png") {
 				asset_name, _ := strings.replace(info.name, ".png", "", 1)
         asset_path := strings.clone_to_cstring(info.fullpath)
-        log.info(asset_name, asset_path)
-				if strings.contains(info.fullpath, "textures") {
+        // fmt.println(asset_name, asset_path)
+				if strings.contains(info.fullpath, "images") {
           add_texture(&asset_manager.storage, asset_name, rl.LoadTexture(asset_path))
 
 				}
@@ -65,10 +65,10 @@ init :: proc(asset_manager: ^AssetManager, assets_path: string) {
 	load_assets(asset_manager, assets_path)
 
   for name, tex in asset_manager.storage.textures {
-    log.info("Loaded image:", name)
+    fmt.println("Loaded image:", name)
   }
   for name, sound in asset_manager.storage.sounds {
-      log.info("Loaded sound:", name)
+      fmt.println("Loaded sound:", name)
   }
 }
 

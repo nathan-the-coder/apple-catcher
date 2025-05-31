@@ -51,7 +51,7 @@ init_gameplay :: proc(game: ^Game) {
   loadr.init(game.asset_manager, "assets")
 
   game.basket = new(basket.Basket)
-  basket.init(game.basket, game.asset_manager, 500, 500)
+  basket.init(game.basket, game.asset_manager, cast(f32)game.config.screenWidth/2, cast(f32)game.config.screenHeight-50)
 }
 
 update :: proc(game: ^Game, dt: f32) {
