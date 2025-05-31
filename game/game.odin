@@ -1,8 +1,10 @@
 package game
 
 import rl "vendor:raylib"
+import "core:fmt"
 
 import "../loadr"
+import "../basket"
 
 GameState :: enum {
   PLAYING,
@@ -23,6 +25,10 @@ Game :: struct {
   config: GameConfig,
   asset_manager: ^loadr.AssetManager,
 
+  // Sprites
+  basket: ^basket.Basket,
+
+  // Others
   timeGameStarted: f64,
   timeGameEnded: f64,
 }
@@ -32,9 +38,6 @@ init :: proc(game: ^Game) {
   rl.InitWindow(game.config.screenWidth, game.config.screenHeight, "Apple Catcher")
   rl.InitAudioDevice()
 
-  game.asset_manager = new(loadr.AssetManager)
-  loadr.init(game.asset_manager, "assets")
-
   init_gameplay(game)
 
   rl.SetTargetFPS(500)
@@ -43,12 +46,20 @@ init :: proc(game: ^Game) {
 init_gameplay :: proc(game: ^Game) {
   game.state = .PLAYING
   game.timeGameStarted = rl.GetTime()
+
+  game.asset_manager = new(loadr.AssetManager)
+  loadr.init(game.asset_manager, "assets")
+
+  game.basket = new(basket.Basket)
+  basket.init(game.basket, game.asset_manager, 500, 500)
 }
 
 update :: proc(game: ^Game, dt: f32) {
   if game.state == .END && rl.IsKeyPressed(.R) {
     init_gameplay(game)
   }
+
+  basket.update(game.basket, dt)
 }
 
 draw :: proc(game: ^Game) {
@@ -58,6 +69,7 @@ draw :: proc(game: ^Game) {
 
   if (game.state == .END) {
   } else {
+    basket.draw(game.basket)  
   }
 
   rl.EndDrawing()
@@ -74,6 +86,8 @@ run :: proc(game: ^Game) {
 close :: proc(game: ^Game) {
   game.state = .END
   game.timeGameEnded = rl.GetTime()
+
+  loadr.unload(game.asset_manager)
 
   rl.CloseAudioDevice()
   rl.CloseWindow()
