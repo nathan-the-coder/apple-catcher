@@ -17,7 +17,7 @@ Basket :: struct {
 
 init :: proc(self: ^Basket, asset_manager: ^loadr.AssetManager, x: f32, y: f32) {
   self.apple_caught = 0
-  self.move_spd = 200
+  self.move_spd = 220
   self.vel = rl.Vector2{ 0, 0 }
 
   self.texture = loadr.get_texture(asset_manager, "basket")
@@ -25,6 +25,26 @@ init :: proc(self: ^Basket, asset_manager: ^loadr.AssetManager, x: f32, y: f32) 
 }
 
 update :: proc(self: ^Basket, dt: f32) {
+  // To avoid the sliding effect on the basket, Its velocity needs to be zeroed out first.
+  self.vel = rl.Vector2{ 0, 0 }
+
+  // Update basket position with keypress
+  // Update basket's velocity by its speed in left and right direction with keydown
+  // Supports common WASD key and the less common Arrow Keys.
+  if rl.IsKeyDown(.A) || rl.IsKeyDown(.LEFT) {
+    // move the basket left by negating its speed and setting it to velocity x
+    self.vel.x = -self.move_spd
+  } else if rl.IsKeyDown(.D) || rl.IsKeyDown(.RIGHT) {
+    // move the basket right by using its speed and setting it to velocity x
+    self.vel.x = self.move_spd
+  }
+
+  // Update the basket's position by velocity multiplied by dt
+  self.rect.x += self.vel.x * dt
+
+  // Clamp the basket's position to prevent it from going offscreen.
+  if self.rect.x < self.rect.width/2 { self.rect.x = self.rect.width/2}
+  else if self.rect.x > cast(f32)rl.GetScreenWidth() - self.rect.width/2 { self.rect.x = cast(f32)rl.GetScreenWidth() - self.rect.width/2}
 }
 
 draw :: proc(self: ^Basket) {
