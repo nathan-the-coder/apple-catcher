@@ -1,0 +1,4 @@
+package spawner
+
+Apple :: struct {
+}
