@@ -21,7 +21,6 @@ init_spawner :: proc(self: ^AppleSpawner, asset_manager: ^loadr.AssetManager) {
   self.spawn_timer = 1.0
 }
 
-
 update_objects :: proc(self: ^AppleSpawner, asset_manager: ^loadr.AssetManager, dt: f32) {
 
   self.spawn_timer -= dt

@@ -61,6 +61,7 @@ init_gameplay :: proc(game: ^Game) {
   spawner.init_spawner(game.apple_spawner, game.asset_manager)
 }
 
+
 update :: proc(game: ^Game, dt: f32) {
   if game.state == .END && rl.IsKeyPressed(.R) {
     init_gameplay(game)
@@ -68,6 +69,13 @@ update :: proc(game: ^Game, dt: f32) {
 
   basket.update(game.basket, dt)
   spawner.update_objects(game.apple_spawner, game.asset_manager, dt)
+
+  for i := len(game.apple_spawner.apples) - 1; i >= 0; i -= 1 {
+    if basket.check_collision(game.basket, game.apple_spawner.apples[i].rect) {
+      ordered_remove(&game.apple_spawner.apples, i)
+      game.basket.apple_caught += 1
+    }
+  }
 }
 
 draw :: proc(game: ^Game) {

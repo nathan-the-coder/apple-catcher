@@ -45,6 +45,19 @@ update :: proc(self: ^Basket, dt: f32) {
   // Clamp the basket's position to prevent it from going offscreen.
   if self.rect.x < self.rect.width/2 { self.rect.x = self.rect.width/2}
   else if self.rect.x > cast(f32)rl.GetScreenWidth() - self.rect.width/2 { self.rect.x = cast(f32)rl.GetScreenWidth() - self.rect.width/2}
+
+  fmt.println("Apples caught count: ", self.apple_caught)
+}
+
+check_collision :: proc(self: ^Basket, other_rect: rl.Rectangle) -> bool {
+  if self.rect.x < other_rect.x + other_rect.width &&
+     self.rect.x + self.rect.width > other_rect.x &&
+     self.rect.y < other_rect.y + other_rect.height &&
+     self.rect.y + self.rect.height > other_rect.y {
+       return true
+   } else {
+     return false
+   }
 }
 
 draw :: proc(self: ^Basket) {
