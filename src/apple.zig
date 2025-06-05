@@ -4,19 +4,19 @@ pub const Apple = struct {
     texture: rl.Texture2D,
     rect: rl.Rectangle,
 
-    fallSpeed: f32,
+    fall_spd: f32,
 
     pub fn init(x: f32, y: f32) !Apple {
         const tex = try rl.loadTexture("assets/images/apple.png");
         return Apple{
-            .fallSpeed = 200.0,
+            .fall_spd = 200.0,
             .texture = tex,
             .rect = .{ .x = x, .y = y, .width = @as(f32, @floatFromInt(tex.width)), .height = @as(f32, @floatFromInt(tex.height)) },
         };
     }
 
     pub fn update(self: *Apple, dt: f32) void {
-        self.rect.y += self.fallSpeed * dt;
+        self.rect.y += self.fall_spd * dt;
     }
 
     pub fn draw(self: *Apple) void {

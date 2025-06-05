@@ -3,6 +3,9 @@ const rl = @import("raylib");
 
 const Basket = @import("./basket.zig").Basket;
 const AppleSpawner = @import("./spawner.zig").AppleSpawner;
+const SoundManager = @import("sound_manager.zig").SoundManager;
+
+const utils = @import("utils.zig");
 
 const GameState = enum {
     PLAYING,
@@ -15,12 +18,15 @@ const GameState = enum {
 
 pub const Game = struct {
     state: GameState,
-    timeGameStarted: f64,
-    timeGameEnded: f64,
+    time_game_started: f64,
+    time_game_ended: f64,
 
     // sprites
     basket: Basket,
     spawner: AppleSpawner,
+
+    // Structs instances
+    sound_manager: SoundManager,
 
     // methods
     pub fn init(screenWidth: i32, screenHeight: i32) !Game {
@@ -33,56 +39,75 @@ pub const Game = struct {
         const b = try Basket.init(@as(f32, @floatFromInt(screenWidth)) / 2.0, @as(f32, @floatFromInt(screenHeight - 50)));
         const spwner = try AppleSpawner.init();
 
-        return Game{
-            .state = .PLAYING,
-            .timeGameStarted = rl.getTime(),
-            .timeGameEnded = 0.0,
-            .basket = b,
-            .spawner = spwner,
-        };
+        const sm = SoundManager.init();
+
+        return Game{ .state = .PLAYING, .time_game_started = rl.getTime(), .time_game_ended = 0.0, .basket = b, .spawner = spwner, .sound_manager = sm };
     }
 
-    pub fn init_gameplay(self: *Game) void {
+    pub fn init_gameplay(self: *@This()) !void {
         self.state = .PLAYING;
-        self.timeGameStarted = rl.getTime();
+        self.time_game_started = rl.getTime();
+
+        // Add sounds to the manager.
+        try self.sound_manager.add("catch", "assets/sounds/catch-sfx.wav");
     }
 
-    fn update(self: *Game, dt: f32) !void {
+    fn update(self: *@This(), dt: f32) !void {
         if (self.state == .END and rl.isKeyPressed(.r)) {
-            self.init_gameplay();
+            try self.init_gameplay();
             std.debug.print("dt: {d:.3}\n", .{dt});
         }
 
         self.basket.update(dt);
         try self.spawner.update(dt);
+
+        try self.handleCollisions();
     }
 
-    fn draw(self: *Game) void {
+    fn handleCollisions(self: *@This()) !void {
+        var i = self.spawner.apples.items.len;
+        while (i > 0) {
+            i -= 1;
+            if (utils.checkCollisions(self.basket.rect, self.spawner.apples.items[i].rect)) {
+                _ = self.spawner.apples.swapRemove(i);
+                self.basket.score += 1;
+                try self.sound_manager.play("catch");
+            }
+        }
+
+        if (self.basket.score >= 20) {
+            self.spawner.scaleFallSpeed(2);
+        }
+    }
+
+    fn draw(self: *@This()) !void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.sky_blue);
 
         if (self.state == .END) {} else {
-            self.basket.draw();
+            try self.basket.draw();
             self.spawner.draw();
         }
     }
 
-    pub fn run(self: *Game) !void {
+    pub fn run(self: *@This()) !void {
         while (!rl.windowShouldClose()) {
             const dt = rl.getFrameTime();
             try self.update(dt);
-            self.draw();
+            try self.draw();
         }
     }
 
-    pub fn deinit(self: *Game) void {
+    pub fn deinit(self: *@This()) void {
         self.state = .END;
-        self.timeGameEnded = rl.getTime();
+        self.time_game_ended = rl.getTime();
 
         self.basket.deinit();
         self.spawner.deinit();
+
+        self.sound_manager.deinit();
 
         rl.closeAudioDevice();
         rl.closeWindow();
