@@ -6,13 +6,13 @@ pub const Basket = struct {
     rect: rl.Rectangle,
 
     move_spd: f32,
-    score: i32,
+    last_milestone_score: i32,
 
     pub fn init(x: f32, y: f32) !Basket {
         const tex = try rl.loadTexture("assets/images/basket.png");
         return Basket{
             .move_spd = 200.0,
-            .score = 0,
+            .last_milestone_score = 0,
             .texture = tex,
             .rect = .{ .x = x, .y = y, .width = @as(f32, @floatFromInt(tex.width)), .height = @as(f32, @floatFromInt(tex.height)) },
         };
@@ -35,10 +35,6 @@ pub const Basket = struct {
 
     pub fn draw(self: *Basket) !void {
         rl.drawTexturePro(self.texture, .{ .x = 0.0, .y = 0.0, .width = @as(f32, @floatFromInt(self.texture.width)), .height = @as(f32, @floatFromInt(self.texture.height)) }, self.rect, .{ .x = @as(f32, @floatFromInt(self.texture.width)) / 2, .y = @as(f32, @floatFromInt(self.texture.height)) / 2 }, 0.0, rl.Color.white);
-
-        var buf: [500]u8 = undefined;
-        const scoreStr = try std.fmt.bufPrintZ(&buf, "{}", .{self.score});
-        rl.drawText(scoreStr, @divExact(rl.getScreenWidth(), 2), 20, 50, rl.Color.white);
     }
 
     pub fn deinit(self: *Basket) void {

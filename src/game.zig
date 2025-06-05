@@ -21,6 +21,9 @@ pub const Game = struct {
     time_game_started: f64,
     time_game_ended: f64,
 
+    player_score: i32,
+    last_milestone_player_score: i32,
+
     // sprites
     basket: Basket,
     spawner: AppleSpawner,
@@ -41,7 +44,7 @@ pub const Game = struct {
 
         const sm = SoundManager.init();
 
-        return Game{ .state = .PLAYING, .time_game_started = rl.getTime(), .time_game_ended = 0.0, .basket = b, .spawner = spwner, .sound_manager = sm };
+        return Game{ .state = .PLAYING, .time_game_started = rl.getTime(), .time_game_ended = 0.0, .player_score = 0, .last_milestone_player_score = 0, .basket = b, .spawner = spwner, .sound_manager = sm };
     }
 
     pub fn init_gameplay(self: *@This()) !void {
@@ -49,7 +52,12 @@ pub const Game = struct {
         self.time_game_started = rl.getTime();
 
         // Add sounds to the manager.
+        // the sound for when the apple caught by the basket.
         try self.sound_manager.add("catch", "assets/sounds/catch-sfx.wav");
+        // add the bg music for the game
+        try self.sound_manager.add("bgMusic", "assets/sounds/bgMusic.mp3");
+
+        try self.sound_manager.play("bgMusic");
     }
 
     fn update(self: *@This(), dt: f32) !void {
@@ -62,6 +70,13 @@ pub const Game = struct {
         try self.spawner.update(dt);
 
         try self.handleCollisions();
+
+        // Check if the
+        if (self.player_score >= self.last_milestone_player_score + 10) {
+            self.last_milestone_player_score += 10;
+
+            self.spawner.incrementFallSpeed(10);
+        }
     }
 
     fn handleCollisions(self: *@This()) !void {
@@ -70,13 +85,9 @@ pub const Game = struct {
             i -= 1;
             if (utils.checkCollisions(self.basket.rect, self.spawner.apples.items[i].rect)) {
                 _ = self.spawner.apples.swapRemove(i);
-                self.basket.score += 1;
+                self.player_score += 1;
                 try self.sound_manager.play("catch");
             }
-        }
-
-        if (self.basket.score >= 20) {
-            self.spawner.scaleFallSpeed(2);
         }
     }
 
@@ -88,6 +99,11 @@ pub const Game = struct {
 
         if (self.state == .END) {} else {
             try self.basket.draw();
+
+            var buf: [500]u8 = undefined;
+            const scoreStr = try std.fmt.bufPrintZ(&buf, "{}", .{self.player_score});
+            rl.drawText(scoreStr, @divExact(rl.getScreenWidth(), 2), 20, 50, rl.Color.white);
+
             self.spawner.draw();
         }
     }
@@ -100,9 +116,11 @@ pub const Game = struct {
         }
     }
 
-    pub fn deinit(self: *@This()) void {
+    pub fn deinit(self: *@This()) !void {
         self.state = .END;
         self.time_game_ended = rl.getTime();
+
+        _ = try self.sound_manager.stop("bgMusic");
 
         self.basket.deinit();
         self.spawner.deinit();

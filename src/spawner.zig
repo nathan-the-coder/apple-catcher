@@ -19,7 +19,13 @@ pub const AppleSpawner = struct {
         return AppleSpawner{ .spawn_duration = 1.0, .spawn_timer = 1.0, .apples = list };
     }
 
-    pub fn update(self: *AppleSpawner, dt: f32) !void {
+    pub fn incrementFallSpeed(self: *@This(), inc_factor: f32) void {
+        for (0..self.apples.items.len) |i| {
+            self.apples.items[i].fall_spd += inc_factor;
+        }
+    }
+
+    pub fn update(self: *@This(), dt: f32) !void {
         self.spawn_timer -= dt;
 
         if (self.spawn_timer <= 0) {
@@ -43,13 +49,13 @@ pub const AppleSpawner = struct {
         }
     }
 
-    pub fn draw(self: *AppleSpawner) void {
+    pub fn draw(self: *@This()) void {
         for (0..self.apples.items.len) |i| {
             self.apples.items[i].draw();
         }
     }
 
-    pub fn deinit(self: *AppleSpawner) void {
+    pub fn deinit(self: *@This()) void {
         for (0..self.apples.items.len) |i| {
             self.apples.items[i].deinit();
         }
