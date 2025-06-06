@@ -2,3 +2,5 @@ Thu Jun 05, 2:07 PM
 I have finish making a working basket - apple collision using AABB Collision Detection (well I just transfered it over from odin to zig), after that I have implemented also a simple scoring for the player that track how many apples they have already has caught, each apple is equivalent to 1 point. 
 
 I am now working on the difficulty system of the game and also on the polish part -- which is adding sound effects to other parts like the bg music, etc. After a while of working on these I will work on the menus next as part of the extra feature that isnt needed in the MVP, but they aren't required to be made yet so I will put it off for a while until I have a working MVP that has the core features of an apple catcher game.
+
+

@@ -21,7 +21,7 @@ pub const AppleSpawner = struct {
 
     pub fn incrementFallSpeed(self: *@This(), inc_factor: f32) void {
         for (0..self.apples.items.len) |i| {
-            self.apples.items[i].fall_spd += inc_factor;
+            self.apples.items[i].fall_spd += inc_factor * 2;
         }
     }
 
