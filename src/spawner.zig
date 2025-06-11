@@ -2,26 +2,49 @@ const std = @import("std");
 const rl = @import("raylib");
 
 const ArrayList = std.ArrayList;
-
 const Apple = @import("apple.zig").Apple;
+const config = @import("config.zig");
+const colors = @import("colors.zig");
 
 const MAX_APPLES = 30;
+
+pub const AppleType = enum {
+    Normal,
+    Bad,
+    Golden,
+};
 
 pub const AppleSpawner = struct {
     apples: ArrayList(Apple),
     spawn_timer: f32,
     spawn_duration: f32,
+    texture: ?rl.Texture2D,
+    allocator: std.mem.Allocator,
 
-    pub fn init() !AppleSpawner {
-        const allocator = std.heap.page_allocator;
-        const list = try ArrayList(Apple).initCapacity(allocator, 30);
+    pub fn init(allocator: std.mem.Allocator) !AppleSpawner {
+        const apples = try ArrayList(Apple).initCapacity(allocator, 30);
 
-        return AppleSpawner{ .spawn_duration = 1.0, .spawn_timer = 1.0, .apples = list };
+        const tex = try rl.loadTexture("assets/images/apple.png");
+
+        return AppleSpawner{ .spawn_duration = 1.0, .spawn_timer = 1.0, .texture = tex, .apples = apples, .allocator = allocator };
     }
 
     pub fn incrementFallSpeed(self: *@This(), inc_factor: f32) void {
-        for (0..self.apples.items.len) |i| {
-            self.apples.items[i].fall_spd += inc_factor * 2;
+        for (self.apples.items) |*apple| {
+            apple.fall_spd += inc_factor;
+        }
+    }
+
+    fn spawnRandomAppleType(self: *@This()) AppleType {
+        _ = self;
+        const roll = rl.getRandomValue(1, 100);
+
+        if (roll <= 5) {
+            return .Golden;
+        } else if (roll <= 20) {
+            return .Bad;
+        } else {
+            return .Normal;
         }
     }
 
@@ -33,31 +56,34 @@ pub const AppleSpawner = struct {
 
             // Only spawn if it haven't hit the limit
             if (self.apples.items.len < MAX_APPLES) {
-                const apple = try Apple.init(@as(f32, @as(f32, @floatFromInt(rl.getRandomValue(0, rl.getScreenWidth())))), 0.0);
+                var apple = Apple.init(@as(f32, @as(f32, @floatFromInt(rl.getRandomValue(0, config.screen_width)))), 0.0);
+                apple.texture = self.texture;
+
+                const apple_type = self.spawnRandomAppleType();
+
+                apple.color = if (apple_type == .Golden) colors.toRlColor(.Gold) else if (apple_type == .Bad)
+                    colors.toRlColor(.Gray)
+                else
+                    colors.toRlColor(.White);
+
                 try self.apples.append(apple);
             }
         }
 
-        var i = self.apples.items.len;
-        while (i > 0) {
-            i -= 1;
-            self.apples.items[i].update(dt);
-
-            if (self.apples.items[i].rect.y >= @as(f32, @floatFromInt(rl.getScreenHeight()))) {
-                _ = self.apples.swapRemove(i);
-            }
+        for (self.apples.items) |*apple| {
+            apple.update(dt);
         }
     }
 
     pub fn draw(self: *@This()) void {
-        for (0..self.apples.items.len) |i| {
-            self.apples.items[i].draw();
+        for (self.apples.items) |*apple| {
+            apple.draw();
         }
     }
 
     pub fn deinit(self: *@This()) void {
-        for (0..self.apples.items.len) |i| {
-            self.apples.items[i].deinit();
+        for (self.apples.items) |*apple| {
+            apple.deinit();
         }
 
         self.apples.deinit();

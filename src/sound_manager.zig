@@ -36,6 +36,13 @@ pub const SoundManager = struct {
         rl.stopSound(sound);
     }
 
+    pub fn stop_all(self: *@This()) !void {
+        var it = self.storage.iterator();
+        while (it.next()) |entry| {
+            rl.stopSound(entry.value_ptr.*);
+        }
+    }
+
     pub fn deinit(self: *@This()) void {
         var it = self.storage.iterator();
         while (it.next()) |entry| {

@@ -4,3 +4,8 @@ I have finish making a working basket - apple collision using AABB Collision Det
 I am now working on the difficulty system of the game and also on the polish part -- which is adding sound effects to other parts like the bg music, etc. After a while of working on these I will work on the menus next as part of the extra feature that isnt needed in the MVP, but they aren't required to be made yet so I will put it off for a while until I have a working MVP that has the core features of an apple catcher game.
 
 
+Sat Jun 07, 2025 3:38 PM
+I have fixed the problem of loading too many textures for one type of object by making the texture a shared texture, and have finish slightly the lose state of the game wherein, I decided to make it, if 5 or more apples are missed then game over. 
+I didn't really test it much, though its just simple so yeah, but next thing I will work on is the sfx for missed  apples, and the game over screen. But there's already code for restarting so yeah, that will come in handy later on.
+
+And then as for the state of the whole game, I think its almost ready for shipment and publish I guess (well I think its best to put it on itch.io as one of my game, as it's just a simple game), after that I plan on enhancing it more if the game would attract player's (heh, I hope so), that way they will some kind of unique experience for my. BUT, until then, that would be the final MVP of the game.
