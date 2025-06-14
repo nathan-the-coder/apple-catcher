@@ -1,6 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
 
+const State = @import("state.zig");
+const GameState = State.GameState;
+
 const Basket = @import("./basket.zig").Basket;
 const AppleSpawner = @import("./spawner.zig").AppleSpawner;
 const SoundManager = @import("sound_manager.zig").SoundManager;
@@ -8,15 +11,6 @@ const SoundManager = @import("sound_manager.zig").SoundManager;
 const config = @import("config.zig");
 
 const utils = @import("utils.zig");
-
-const GameState = enum {
-    PLAYING,
-
-    MAIN_MENU,
-    PAUSE_MENU,
-
-    END,
-};
 
 pub const Game = struct {
     state: GameState,
@@ -27,6 +21,7 @@ pub const Game = struct {
     player_score: i32,
     last_milestone_player_score: i32,
     missed_apples: i32,
+    level: i32,
 
     // sprites
     basket: Basket,
@@ -51,11 +46,10 @@ pub const Game = struct {
         const sm = SoundManager.init();
         const bg_image = try rl.loadTexture("assets/images/bg.png");
 
-        return Game{ .state = .PLAYING, .time_game_started = rl.getTime(), .time_game_ended = 0.0, .player_score = 0, .last_milestone_player_score = 0, .missed_apples = 0, .basket = b, .spawner = spwner, .sound_manager = sm, .bg_image = bg_image };
+        return Game{ .state = .MAIN_MENU, .level = 1, .time_game_started = rl.getTime(), .time_game_ended = 0.0, .player_score = 0, .last_milestone_player_score = 0, .missed_apples = 0, .basket = b, .spawner = spwner, .sound_manager = sm, .bg_image = bg_image };
     }
 
     pub fn init_gameplay(self: *@This()) !void {
-        self.state = .PLAYING;
         self.time_game_started = rl.getTime();
 
         // Add sounds to the manager.
@@ -72,38 +66,62 @@ pub const Game = struct {
     }
 
     fn update(self: *@This(), dt: f32) !void {
-        if (self.state == .END and rl.isKeyPressed(.r)) {
-            try self.init_gameplay();
-        }
-
-        if (self.state == .END) {
-            try self.sound_manager.stop_all();
-        } else {
-            self.basket.update(dt);
-            try self.spawner.update(dt);
-
-            try self.handleCollisions();
-
-            // Check if the
-            if (self.player_score >= self.last_milestone_player_score + 10) {
-                self.last_milestone_player_score += 10;
-
-                self.spawner.incrementFallSpeed(10);
-            }
-
-            // Logic for removing off-screen apples and adding the value of missed_apples for lose state.
-            for (self.spawner.apples.items, 0..) |*apple, i| {
-                if (apple.rect.y >= @as(f32, @floatFromInt(config.screen_height))) {
-                    _ = self.spawner.apples.swapRemove(i);
-                    self.missed_apples += 1;
-                    try self.sound_manager.play("missed");
+        switch (self.state) {
+            .MAIN_MENU => {
+                if (rl.isKeyPressed(.enter)) {
+                    self.state = State.nextState(self.state, .Start);
+                    try self.init_gameplay();
                 }
-            }
+            },
+            .PLAYING => {
+                if (rl.isKeyPressed(.escape)) {
+                    self.state = State.nextState(self.state, .Pause);
+                    try self.init_gameplay();
+                } else {
+                    self.basket.update(dt);
+                    try self.spawner.update(dt);
 
-            // Check how many apples the player missed, if greater than 5, then game over.
-            if (self.missed_apples > 5) {
-                self.state = .END;
-            }
+                    try self.handleCollisions();
+
+                    // Check if the
+                    if (self.player_score >= self.last_milestone_player_score + 10) {
+                        self.last_milestone_player_score += 10;
+
+                        self.spawner.incrementFallSpeed(10);
+                    }
+
+                    // Logic for removing off-screen apples and adding the value of missed_apples for lose state.
+                    for (self.spawner.apples.items, 0..) |*apple, i| {
+                        if (apple.rect.y >= @as(f32, @floatFromInt(config.screen_height))) {
+                            _ = self.spawner.apples.swapRemove(i);
+                            self.missed_apples += 1;
+                            try self.sound_manager.play("missed");
+                        }
+                    }
+
+                    // Check how many apples the player missed, if greater than 5, then game over.
+                    if (self.missed_apples > 5) {
+                        self.state = .END;
+                    }
+                }
+            },
+            .PAUSE_MENU => {
+                if (rl.isKeyPressed(.escape)) {
+                    self.state = State.nextState(self.state, .Resume);
+                    try self.sound_manager.play("bgMusic");
+                } else if (rl.isKeyPressed(.q)) {
+                    self.state = State.nextState(self.state, .Quit);
+                }
+            },
+            .END => {
+                try self.sound_manager.stop_all();
+                if (rl.isKeyPressed(.q)) {
+                    self.state = State.nextState(self.state, .Start);
+                    try self.init_gameplay();
+                } else if (rl.isKeyPressed(.q)) {
+                    self.state = State.nextState(self.state, .Quit);
+                }
+            },
         }
     }
 
@@ -113,9 +131,21 @@ pub const Game = struct {
             i -= 1;
             if (utils.checkCollisions(self.basket.rect, self.spawner.apples.items[i].rect)) {
                 _ = self.spawner.apples.swapRemove(i);
-                self.player_score += 1;
+
+                if (self.spawner.apples.items[i].type == .Bad) {
+                    self.state = .END;
+                } else if (self.spawner.apples.items[i].type == .Golden) {
+                    self.player_score += 10;
+                } else {
+                    self.player_score += 1;
+                }
                 try self.sound_manager.play("catch");
             }
+        }
+
+        if (self.level == 1 and self.player_score >= 20) {
+            self.level += 1;
+            self.player_score = 0;
         }
     }
 
@@ -125,16 +155,32 @@ pub const Game = struct {
 
         rl.clearBackground(rl.Color.sky_blue);
 
-        if (self.state == .END) {} else {
-            rl.drawTexturePro(self.bg_image, .{ .x = 0, .y = 0, .width = @as(f32, @floatFromInt(self.bg_image.width)), .height = @as(f32, @floatFromInt(self.bg_image.height)) }, .{ .x = 0, .y = 0, .width = @as(f32, @floatFromInt(rl.getScreenWidth())), .height = @as(f32, @floatFromInt(rl.getScreenHeight())) }, .{ .x = 0, .y = 0 }, 0.0, rl.Color.white);
+        switch (self.state) {
+            .MAIN_MENU => {
+                rl.drawText("APPLE CATCHER", 100, 100, 50, rl.Color.dark_green);
+                rl.drawText("Press ENTER to Start", 100, 200, 30, rl.Color.black);
+            },
+            .PLAYING => {
+                rl.drawTexturePro(self.bg_image, .{ .x = 0, .y = 0, .width = @as(f32, @floatFromInt(self.bg_image.width)), .height = @as(f32, @floatFromInt(self.bg_image.height)) }, .{ .x = 0, .y = 0, .width = @as(f32, @floatFromInt(rl.getScreenWidth())), .height = @as(f32, @floatFromInt(rl.getScreenHeight())) }, .{ .x = 0, .y = 0 }, 0.0, rl.Color.white);
 
-            try self.basket.draw();
+                try self.basket.draw();
 
-            var buf: [500]u8 = undefined;
-            const scoreStr = try std.fmt.bufPrintZ(&buf, "{}", .{self.player_score});
-            rl.drawText(scoreStr, @divExact(rl.getScreenWidth(), 2), 20, 50, rl.Color.white);
+                var buf: [500]u8 = undefined;
+                const scoreStr = try std.fmt.bufPrintZ(&buf, "{}", .{self.player_score});
+                rl.drawText(scoreStr, @divExact(rl.getScreenWidth(), 2), 20, 50, rl.Color.white);
 
-            self.spawner.draw();
+                self.spawner.draw();
+            },
+            .PAUSE_MENU => {
+                rl.drawText("PAUSED", 100, 100, 50, rl.Color.gray);
+                rl.drawText("Press ESC to Resume", 100, 200, 30, rl.Color.black);
+                rl.drawText("Press Q to Quit to  Menu", 100, 250, 30, rl.Color.black);
+            },
+            .END => {
+                rl.drawText("GAME OVER", 100, 100, 50, rl.Color.red);
+                rl.drawText("Press R to Restart", 100, 200, 30, rl.Color.black);
+                rl.drawText("Press Q for Main Menu", 100, 250, 30, rl.Color.black);
+            },
         }
     }
 

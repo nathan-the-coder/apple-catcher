@@ -2,17 +2,13 @@ const std = @import("std");
 const rl = @import("raylib");
 
 const ArrayList = std.ArrayList;
-const Apple = @import("apple.zig").Apple;
 const config = @import("config.zig");
-const colors = @import("colors.zig");
+
+const apple = @import("apple.zig");
+const Apple = apple.Apple;
+const AppleType = apple.AppleType;
 
 const MAX_APPLES = 30;
-
-pub const AppleType = enum {
-    Normal,
-    Bad,
-    Golden,
-};
 
 pub const AppleSpawner = struct {
     apples: ArrayList(Apple),
@@ -30,8 +26,8 @@ pub const AppleSpawner = struct {
     }
 
     pub fn incrementFallSpeed(self: *@This(), inc_factor: f32) void {
-        for (self.apples.items) |*apple| {
-            apple.fall_spd += inc_factor;
+        for (self.apples.items) |*a| {
+            a.fall_spd += inc_factor;
         }
     }
 
@@ -56,34 +52,29 @@ pub const AppleSpawner = struct {
 
             // Only spawn if it haven't hit the limit
             if (self.apples.items.len < MAX_APPLES) {
-                var apple = Apple.init(@as(f32, @as(f32, @floatFromInt(rl.getRandomValue(0, config.screen_width)))), 0.0);
-                apple.texture = self.texture;
+                var a = Apple.init(@as(f32, @as(f32, @floatFromInt(rl.getRandomValue(0, config.screen_width)))), 0.0);
+                a.texture = self.texture;
 
-                const apple_type = self.spawnRandomAppleType();
+                a.type = self.spawnRandomAppleType();
 
-                apple.color = if (apple_type == .Golden) colors.toRlColor(.Gold) else if (apple_type == .Bad)
-                    colors.toRlColor(.Gray)
-                else
-                    colors.toRlColor(.White);
-
-                try self.apples.append(apple);
+                try self.apples.append(a);
             }
         }
 
-        for (self.apples.items) |*apple| {
-            apple.update(dt);
+        for (self.apples.items) |*a| {
+            a.update(dt);
         }
     }
 
     pub fn draw(self: *@This()) void {
-        for (self.apples.items) |*apple| {
-            apple.draw();
+        for (self.apples.items) |*a| {
+            a.draw();
         }
     }
 
     pub fn deinit(self: *@This()) void {
-        for (self.apples.items) |*apple| {
-            apple.deinit();
+        for (self.apples.items) |*a| {
+            a.deinit();
         }
 
         self.apples.deinit();
